@@ -95,7 +95,7 @@ GameObject:
   - component: {fileID: 4475699381534582891}
   - component: {fileID: 8066775920755544512}
   m_Layer: 0
-  m_Name: pfGemGridVisual
+  m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu()]
-public class Cube : ScriptableObject {
-
-    public string gemName;
+public class Cube : ScriptableObject 
+{
     public Sprite sprite;
 }

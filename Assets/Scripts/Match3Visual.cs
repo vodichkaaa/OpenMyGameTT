@@ -6,37 +6,39 @@ using UnityEngine;
 /*
  * Visual Representation of the underlying Match3 Grid
  * */
-public class Match3Visual : MonoBehaviour {
-
-    public event EventHandler OnStateChanged;
-
-    public enum State {
+public class Match3Visual : MonoBehaviour 
+{
+    public enum State 
+    {
         Busy,
         WaitingForUser,
         TryFindMatches,
     }
 
-    [SerializeField] private Transform pfCubeGridVisual;
-    [SerializeField] private Match3 match3;
+    [SerializeField] 
+    private Transform _cubePrefab;
+    
+    [SerializeField] 
+    private Match3 _match3;
 
-    private Grid<Match3.CubeGridPosition> grid;
-    private Dictionary<Match3.CubeGrid, CubeGridVisual> cubeGridDictionary;
+    private Grid<Match3.CubeGridPosition> _grid;
+    private Dictionary<Match3.CubeGrid, CubeGridVisual> _cubeGridDictionary;
 
-    private bool isSetup;
-    private State state;
-    private float busyTimer;
-    private Action onBusyTimerElapsedAction;
+    private bool _isSetup;
+    private float _busyTimer;
+    
+    private State _state;
+    private Action _onBusyTimerElapsedAction;
 
-    private int startDragX;
-    private int startDragY;
-    private Vector3 startDragMouseWorldPosition;
+    private int _startDragX;
+    private int _startDragY;
 
     private void Awake() 
     {
-        state = State.Busy;
-        isSetup = false;
+        _state = State.Busy;
+        _isSetup = false;
 
-        match3.OnLevelSet += OnLevelSet;
+        _match3.OnLevelSet += OnLevelSet;
     }
 
     private void OnLevelSet(object sender, Match3.OnLevelSetEventArgs e) 
@@ -44,133 +46,145 @@ public class Match3Visual : MonoBehaviour {
         Setup(sender as Match3, e.grid);
     }
 
-    public void Setup(Match3 match3, Grid<Match3.CubeGridPosition> grid) 
+    private void Setup(Match3 match3, Grid<Match3.CubeGridPosition> grid) 
     {
-        this.match3 = match3;
-        this.grid = grid;
+        _match3 = match3;
+        _grid = grid;
 
-        match3.OnCubeGridPositionDestroyed += Match3_OnCubeGridPositionDestroyed;
+        _match3.OnCubeGridPositionDestroyed += Match3_OnCubeGridPositionDestroyed;
 
         // Initialize Visual
-        cubeGridDictionary = new Dictionary<Match3.CubeGrid, CubeGridVisual>();
+        _cubeGridDictionary = new Dictionary<Match3.CubeGrid, CubeGridVisual>();
 
-        for (int x = 0; x < grid.GetWidth(); x++) 
+        for (var x = 0; x < _grid.GetWidth(); x++) 
         {
-            for (int y = 0; y < grid.GetHeight(); y++) 
+            for (var y = 0; y < _grid.GetHeight(); y++) 
             {
-                Match3.CubeGridPosition cubeGridPosition = grid.GetGridObject(x, y);
+                Match3.CubeGridPosition cubeGridPosition = _grid.GetGridObject(x, y);
                 Match3.CubeGrid cubeGrid = cubeGridPosition.GetCubeGrid();
 
-                Vector3 position = grid.GetWorldPosition(x, y);
+                Vector3 position = _grid.GetWorldPosition(x, y);
                 position = new Vector3(position.x, 12);
 
                 // Visual Transform
-                Transform cubeGridVisualTransform = Instantiate(pfCubeGridVisual, position, Quaternion.identity);
-                cubeGridVisualTransform.GetComponentInChildren<SpriteRenderer>().sprite = cubeGrid.GetCube().sprite;
+                if(cubeGrid != null && cubeGrid.GetCube() != null)
+                {
+                    Transform cubeGridVisualTransform = Instantiate(_cubePrefab, position, Quaternion.identity);
+                    cubeGridVisualTransform.GetComponentInChildren<SpriteRenderer>().sprite = cubeGrid.GetCube().sprite;
 
-                CubeGridVisual cubeGridVisual = new CubeGridVisual(cubeGridVisualTransform, cubeGrid);
+                    CubeGridVisual cubeGridVisual = new CubeGridVisual(cubeGridVisualTransform, cubeGrid);
 
-                cubeGridDictionary[cubeGrid] = cubeGridVisual;
+                    _cubeGridDictionary[cubeGrid] = cubeGridVisual;
+                }
             }
         }
 
         SetBusyState(.5f, () => SetState(State.TryFindMatches));
 
-        isSetup = true;
+        _isSetup = true;
     }
 
-    private void Match3_OnCubeGridPositionDestroyed(object sender, System.EventArgs e) 
+    private void Match3_OnCubeGridPositionDestroyed(object sender, EventArgs e) 
     {
         if (sender is Match3.CubeGridPosition cubeGridPosition && cubeGridPosition.GetCubeGrid() != null) 
         {
-            cubeGridDictionary.Remove(cubeGridPosition.GetCubeGrid());
+            _cubeGridDictionary.Remove(cubeGridPosition.GetCubeGrid());
         }
     }
 
-    private void Update() {
-        if (!isSetup) return;
+    private void Update() 
+    {
+        if (!_isSetup) return;
 
         UpdateVisual();
 
-        switch (state) {
+        switch (_state) 
+        {
             case State.Busy:
-                busyTimer -= Time.deltaTime;
-                if (busyTimer <= 0f) {
-                    onBusyTimerElapsedAction();
+            {
+                _busyTimer -= Time.deltaTime;
+                if (_busyTimer <= 0f)
+                {
+                    _onBusyTimerElapsedAction();
                 }
+
                 break;
+            }
             case State.WaitingForUser:
-                if (Input.GetMouseButtonDown(0)) {
-                    Vector3 mouseWorldPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);;
-                    grid.GetXY(mouseWorldPosition, out startDragX, out startDragY);
-
-                    startDragMouseWorldPosition = mouseWorldPosition;
+            {
+                if (Input.GetMouseButtonDown(0))
+                {
+                    var mouseWorldPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                    _grid.GetXY(mouseWorldPosition, out _startDragX, out _startDragY);
                 }
 
-                if (Input.GetMouseButtonUp(0)) {
-                    Vector3 mouseWorldPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);;
-                    grid.GetXY(mouseWorldPosition, out int x, out int y);
+                if (Input.GetMouseButtonUp(0))
+                {
+                    var mouseWorldPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                    _grid.GetXY(mouseWorldPosition, out int x, out int y);
 
-                    if (x != startDragX) 
+                    if (x != _startDragX)
                     {
                         // Different X
-                        y = startDragY;
+                        y = _startDragY;
 
-                        if (x < startDragX) 
-                            x = startDragX - 1;
-                        else 
-                            x = startDragX + 1;
-                    } 
-                    else 
+                        if (x < _startDragX)
+                            x = _startDragX - 1;
+                        else
+                            x = _startDragX + 1;
+                    }
+                    else
                     {
                         // Different Y
-                        x = startDragX;
+                        x = _startDragX;
 
-                        if (y < startDragY) 
-                            y = startDragY - 1;
-                        else 
-                            y = startDragY + 1;
+                        if (y < _startDragY)
+                            y = _startDragY - 1;
+                        else
+                            y = _startDragY + 1;
                     }
 
-                    /*if (match3.CanSwapGridPositions(startDragX, startDragY, x, y)) 
+                    if (_match3.CanSwapGridPositions(_startDragX, _startDragY, x, y))
                     {
-                        SwapGridPositions(startDragX, startDragY, x, y);
-                    }*/
-                    SwapGridPositions(startDragX, startDragY, x, y);
+                        SwapGridPositions(_startDragX, _startDragY, x, y);
+                    }
                 }
+                
                 break;
+            }
             case State.TryFindMatches:
-                if (match3.TryFindMatchesAndDestroyThem()) 
+            {
+                if (_match3.TryFindMatchesAndDestroyThem())
                 {
                     SetBusyState(.3f, () =>
                     {
-                        match3.FallCubesIntoEmptyPositions();
-
-                        SetBusyState(.3f, () => 
+                        _match3.FallCubesIntoEmptyPositions();
+                        SetBusyState(.3f, () =>
                         {
                             SetBusyState(.5f, () => SetState(State.TryFindMatches));
                         });
                     });
-                } 
-                else 
-                {
-                    TrySetStateWaitingForUser();
                 }
+                else TrySetStateWaitingForUser();
+
                 break;
+            }
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
 
     private void UpdateVisual() 
     {
-        foreach (Match3.CubeGrid cubeGrid in cubeGridDictionary.Keys) 
+        foreach (var cubeGrid in _cubeGridDictionary.Keys) 
         {
-            cubeGridDictionary[cubeGrid].Update();
+            _cubeGridDictionary[cubeGrid].Update();
         }
     }
 
-    public void SwapGridPositions(int startX, int startY, int endX, int endY) 
+    private void SwapGridPositions(int startX, int startY, int endX, int endY) 
     {
-        match3.SwapGridPositions(startX, startY, endX, endY);
+        _match3.SwapGridPositions(startX, startY, endX, endY);
 
         SetBusyState(.5f, () => SetState(State.TryFindMatches));
     }
@@ -178,8 +192,8 @@ public class Match3Visual : MonoBehaviour {
     private void SetBusyState(float busyTimer, Action onBusyTimerElapsedAction) 
     {
         SetState(State.Busy);
-        this.busyTimer = busyTimer;
-        this.onBusyTimerElapsedAction = onBusyTimerElapsedAction;
+        _busyTimer = busyTimer;
+        _onBusyTimerElapsedAction = onBusyTimerElapsedAction;
     }
 
     private void TrySetStateWaitingForUser() 
@@ -189,37 +203,41 @@ public class Match3Visual : MonoBehaviour {
 
     private void SetState(State state) 
     {
-        this.state = state;
-        OnStateChanged?.Invoke(this, EventArgs.Empty);
+        _state = state;
     }
 
     public State GetState() 
     {
-        return state;
+        return _state;
     }
 
-    public class CubeGridVisual 
+    private class CubeGridVisual
     {
-        private Transform transform;
-        private Match3.CubeGrid cubeGrid;
+        private readonly Transform _transform;
+        private readonly Match3.CubeGrid _cubeGrid;
 
-        public CubeGridVisual(Transform transform, Match3.CubeGrid cubeGrid) {
-            this.transform = transform;
-            this.cubeGrid = cubeGrid;
+        private const float MoveSpeed = 10f;
 
-            cubeGrid.OnDestroyed += cubeGrid_OnDestroyed;
+        public CubeGridVisual(Transform transform, Match3.CubeGrid cubeGrid) 
+        {
+            _transform = transform;
+            _cubeGrid = cubeGrid;
+
+            cubeGrid.OnDestroyed += OnGridDestroyed;
         }
 
-        private void cubeGrid_OnDestroyed(object sender, System.EventArgs e) {
-            transform.GetComponent<Animation>().Play();
-            Destroy(transform.gameObject, 1f);
+        private void OnGridDestroyed(object sender, EventArgs e) 
+        {
+            _transform.GetComponent<Animation>().Play();
+            Destroy(_transform.gameObject, 1f);
         }
 
-        public void Update() {
-            Vector3 targetPosition = cubeGrid.GetWorldPosition();
-            Vector3 moveDir = (targetPosition - transform.position);
-            float moveSpeed = 10f;
-            transform.position += moveDir * moveSpeed * Time.deltaTime;
+        public void Update() 
+        {
+            Vector3 targetPosition = _cubeGrid.GetWorldPosition();
+            Vector3 moveDir = (targetPosition - _transform.position);
+            
+            _transform.position += moveDir * MoveSpeed * Time.deltaTime;
         }
 
     }

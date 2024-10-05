@@ -258,8 +258,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6bc0a0fad80efa54d8155a23be99d786, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pfCubeGridVisual: {fileID: 4475699381534582891, guid: 343952d9773918b4c86f551eb62ddd52, type: 3}
-  match3: {fileID: 1698841875}
+  _cubePrefab: {fileID: 4475699381534582891, guid: 343952d9773918b4c86f551eb62ddd52, type: 3}
+  _match3: {fileID: 1698841875}
 --- !u!1 &1164697327
 GameObject:
   m_ObjectHideFlags: 0
@@ -465,7 +465,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a3ca2ffa0e409d40b9cff9b69d782a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  level: {fileID: 11400000, guid: 654573d43f46f4447bb20424869aacc7, type: 2}
+  level: {fileID: 11400000, guid: 958e31d7a293b9446994f4eb54e30ae3, type: 2}
   autoLoadLevel: 1
 --- !u!4 &1698841876
 Transform:

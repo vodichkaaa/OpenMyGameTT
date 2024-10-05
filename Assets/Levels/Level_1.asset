@@ -12,17 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd6cf24db8e89a64cb8d629f2c37fb98, type: 3}
   m_Name: Level_1
   m_EditorClassIdentifier: 
-  cubeList:
-  - {fileID: 11400000, guid: 782c28e2c82278e4fbec7eff1012fb88, type: 2}
-  - {fileID: 11400000, guid: 48f608c92c5d050468d379bcd56f6836, type: 2}
-  - {fileID: 11400000, guid: 96e52a820edd41f488ffecf6a45fdd2a, type: 2}
   width: 5
   height: 2
   levelGridPositionList:
   - cube: {fileID: 11400000, guid: 48f608c92c5d050468d379bcd56f6836, type: 2}
     x: 0
     y: 0
-  - cube: {fileID: 11400000, guid: 96e52a820edd41f488ffecf6a45fdd2a, type: 2}
+  - cube: {fileID: 0}
     x: 1
     y: 0
   - cube: {fileID: 11400000, guid: 48f608c92c5d050468d379bcd56f6836, type: 2}
@@ -43,9 +39,9 @@ MonoBehaviour:
   - cube: {fileID: 11400000, guid: 782c28e2c82278e4fbec7eff1012fb88, type: 2}
     x: 2
     y: 1
-  - cube: {fileID: 11400000, guid: 96e52a820edd41f488ffecf6a45fdd2a, type: 2}
+  - cube: {fileID: 0}
     x: 3
     y: 1
-  - cube: {fileID: 11400000, guid: 96e52a820edd41f488ffecf6a45fdd2a, type: 2}
+  - cube: {fileID: 0}
     x: 4
     y: 1
