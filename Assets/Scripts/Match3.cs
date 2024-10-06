@@ -94,11 +94,13 @@ public class Match3 : MonoBehaviour {
         var cubeStart = gridObjStart?.GetCubeGrid()?.GetCube();
         var cubeEnd = gridObjEnd?.GetCubeGrid()?.GetCube();
         
-        if (cubeEnd != null && cubeStart!.Equals(cubeEnd))
+        if (cubeStart != null && cubeEnd != null && cubeStart!.Equals(cubeEnd))
         {
             Debug.Log("Same object");
             return false;
         }
+
+        if (cubeEnd == null && startY < endY) return false; //Swapping with free space over cube
         
         //SwapGridPositions(startX, startY, endX, endY); // Swap
         //bool hasLinkAfterSwap = HasMatch3Link(startX, startY) || HasMatch3Link(endX, endY);
@@ -119,8 +121,6 @@ public class Match3 : MonoBehaviour {
         CubeGrid startCubeGrid = startCubeGridPosition.GetCubeGrid();
         CubeGrid endCubeGrid = endCubeGridPosition.GetCubeGrid();
         
-        Debug.Log($"StartX {startX}, StartY {startY} - EndX {endX}, EndY {endY}");
-
         startCubeGrid?.SetCubeXY(endX, endY);
         endCubeGrid?.SetCubeXY(startX, startY);
 
@@ -135,7 +135,7 @@ public class Match3 : MonoBehaviour {
         var foundMatch = false;
 
         List<Vector2Int> explosionGridPositionList = new List<Vector2Int>();
-
+        
         foreach (List<CubeGridPosition> linkedCubeGridPositionList in allLinkedCubeGridPositionList) 
         {
             foreach (var cubeGridPosition in linkedCubeGridPositionList) 
@@ -200,7 +200,6 @@ public class Match3 : MonoBehaviour {
                             nextCubeGridPosition.SetCubeGrid(cubeGridPosition.GetCubeGrid());
                             cubeGridPosition.ClearCubeGrid();
 
-                            Debug.Log($"nextPos {nextCubeGridPosition.GetX()} {nextCubeGridPosition.GetY()}");
                             cubeGridPosition = nextCubeGridPosition;
                         } 
                         else break;

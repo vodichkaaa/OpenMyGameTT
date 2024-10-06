@@ -25,6 +25,8 @@ public class Match3Visual : MonoBehaviour
     private Dictionary<Match3.CubeGrid, CubeGridVisual> _cubeGridDictionary;
 
     private bool _isSetup;
+    
+    private bool _isTimerSet;
     private float _busyTimer;
     
     private State _state;
@@ -35,12 +37,13 @@ public class Match3Visual : MonoBehaviour
 
     private void Awake() 
     {
-        _state = State.Busy;
+        //_state = State.Busy;
+        _state = State.WaitingForUser;
         _isSetup = false;
 
         _match3.OnLevelSet += OnLevelSet;
     }
-
+    
     private void OnLevelSet(object sender, Match3.OnLevelSetEventArgs e) 
     {
         Setup(sender as Match3, e.grid);
@@ -79,7 +82,7 @@ public class Match3Visual : MonoBehaviour
             }
         }
 
-        SetBusyState(.5f, () => SetState(State.TryFindMatches));
+        SeDelayedState(.5f, () => SetState(State.TryFindMatches));
 
         _isSetup = true;
     }
@@ -97,19 +100,11 @@ public class Match3Visual : MonoBehaviour
         if (!_isSetup) return;
 
         UpdateVisual();
-
+        UpdateTimer();
+        
         switch (_state) 
         {
             case State.Busy:
-            {
-                _busyTimer -= Time.deltaTime;
-                if (_busyTimer <= 0f)
-                {
-                    _onBusyTimerElapsedAction();
-                }
-
-                break;
-            }
             case State.WaitingForUser:
             {
                 if (Input.GetMouseButtonDown(0))
@@ -156,20 +151,20 @@ public class Match3Visual : MonoBehaviour
             {
                 /*if (_match3.TryFindMatchesAndDestroyThem())
                 {
-                    SetBusyState(.3f, () =>
+                    SeDelayedState(.3f, () =>
                     {
                         _match3.FallCubesIntoEmptyPositions();
-                        SetBusyState(.2f, () => SetState(State.TryFindMatches));
+                        SeDelayedState(.2f, () => SetState(State.TryFindMatches));
                     });
                 }
                 else TrySetStateWaitingForUser();*/
-
-                SetBusyState(.3f, () =>
+                
+                SeDelayedState(.3f, () =>
                 {
                     if (_match3.TryFindMatchesAndDestroyThem())
                     {
                         _match3.FallCubesIntoEmptyPositions();
-                        SetBusyState(.3f, () => SetState(State.TryFindMatches));
+                        SetState(State.TryFindMatches);
                     }
                     else TrySetStateWaitingForUser();
                 });
@@ -178,6 +173,19 @@ public class Match3Visual : MonoBehaviour
             }
             default:
                 throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    private void UpdateTimer()
+    {
+        if(_isTimerSet)
+        {
+            _busyTimer -= Time.deltaTime;
+            if (_busyTimer <= 0f)
+            {
+                _isTimerSet = false;
+                _onBusyTimerElapsedAction();
+            }
         }
     }
 
@@ -193,18 +201,21 @@ public class Match3Visual : MonoBehaviour
     {
         _match3.SwapGridPositions(startX, startY, endX, endY);
         
-        SetBusyState(.3f, () =>
+        if (_isTimerSet) return;
+        SeDelayedState(0.3f, () =>
         {
             _match3.FallCubesIntoEmptyPositions();
             SetState(State.TryFindMatches);
         });
     }
 
-    private void SetBusyState(float busyTimer, Action onBusyTimerElapsedAction) 
+    private void SeDelayedState(float busyTimer, Action onBusyTimerElapsedAction) 
     {
-        SetState(State.Busy);
-        _busyTimer = busyTimer;
+        SetState(State.WaitingForUser);
         _onBusyTimerElapsedAction = onBusyTimerElapsedAction;
+
+        _busyTimer = busyTimer;
+        _isTimerSet = true;
     }
 
     private void TrySetStateWaitingForUser() 
