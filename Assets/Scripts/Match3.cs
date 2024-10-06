@@ -61,9 +61,13 @@ public class Match3 : MonoBehaviour {
                     Debug.LogError("Couldn't find LevelGridPosition with this x, y!");
                 }
 
-                Cube cube = levelGridPosition.cube;
-                CubeGrid cubeGrid = new CubeGrid(cube, x, y);
-                _grid.GetGridObject(x, y).SetCubeGrid(cubeGrid);
+                var cube = levelGridPosition.cube;
+                var cubeGrid = new CubeGrid(cube, x, y);
+                var cubeGridPosition = _grid.GetGridObject(x, y);
+                cubeGridPosition.SetCubeGrid(cubeGrid);
+                
+                if(levelGridPosition.cube == null)
+                    TryDestroyCubeGridPosition(cubeGridPosition);
             }
         }
         
@@ -84,15 +88,23 @@ public class Match3 : MonoBehaviour {
             return false;
         }*/
 
-        if (startX == endX && startY == endY) return false; // Same Position
-
-        SwapGridPositions(startX, startY, endX, endY); // Swap
-
+        var gridObjStart = _grid.GetGridObject(startX, startY);
+        var gridObjEnd = _grid.GetGridObject(endX, endY);
+        
+        var cubeStart = gridObjStart?.GetCubeGrid()?.GetCube();
+        var cubeEnd = gridObjEnd?.GetCubeGrid()?.GetCube();
+        
+        if (cubeEnd != null && cubeStart!.Equals(cubeEnd))
+        {
+            Debug.Log("Same object");
+            return false;
+        }
+        
+        //SwapGridPositions(startX, startY, endX, endY); // Swap
         //bool hasLinkAfterSwap = HasMatch3Link(startX, startY) || HasMatch3Link(endX, endY);
-
-        SwapGridPositions(startX, startY, endX, endY); // Swap Back
-
-        return true;
+        //SwapGridPositions(startX, startY, endX, endY); // Swap Back
+        
+        return startX != endX || startY != endY;
     }
 
     public void SwapGridPositions(int startX, int startY, int endX, int endY) 
@@ -106,9 +118,11 @@ public class Match3 : MonoBehaviour {
 
         CubeGrid startCubeGrid = startCubeGridPosition.GetCubeGrid();
         CubeGrid endCubeGrid = endCubeGridPosition.GetCubeGrid();
+        
+        Debug.Log($"StartX {startX}, StartY {startY} - EndX {endX}, EndY {endY}");
 
-        startCubeGrid.SetCubeXY(endX, endY);
-        endCubeGrid.SetCubeXY(startX, startY);
+        startCubeGrid?.SetCubeXY(endX, endY);
+        endCubeGrid?.SetCubeXY(startX, startY);
 
         startCubeGridPosition.SetCubeGrid(endCubeGrid);
         endCubeGridPosition.SetCubeGrid(startCubeGrid);
@@ -186,6 +200,7 @@ public class Match3 : MonoBehaviour {
                             nextCubeGridPosition.SetCubeGrid(cubeGridPosition.GetCubeGrid());
                             cubeGridPosition.ClearCubeGrid();
 
+                            Debug.Log($"nextPos {nextCubeGridPosition.GetX()} {nextCubeGridPosition.GetY()}");
                             cubeGridPosition = nextCubeGridPosition;
                         } 
                         else break;

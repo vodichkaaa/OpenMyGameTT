@@ -154,18 +154,25 @@ public class Match3Visual : MonoBehaviour
             }
             case State.TryFindMatches:
             {
-                if (_match3.TryFindMatchesAndDestroyThem())
+                /*if (_match3.TryFindMatchesAndDestroyThem())
                 {
                     SetBusyState(.3f, () =>
                     {
                         _match3.FallCubesIntoEmptyPositions();
-                        SetBusyState(.3f, () =>
-                        {
-                            SetBusyState(.5f, () => SetState(State.TryFindMatches));
-                        });
+                        SetBusyState(.2f, () => SetState(State.TryFindMatches));
                     });
                 }
-                else TrySetStateWaitingForUser();
+                else TrySetStateWaitingForUser();*/
+
+                SetBusyState(.3f, () =>
+                {
+                    if (_match3.TryFindMatchesAndDestroyThem())
+                    {
+                        _match3.FallCubesIntoEmptyPositions();
+                        SetBusyState(.3f, () => SetState(State.TryFindMatches));
+                    }
+                    else TrySetStateWaitingForUser();
+                });
 
                 break;
             }
@@ -185,8 +192,12 @@ public class Match3Visual : MonoBehaviour
     private void SwapGridPositions(int startX, int startY, int endX, int endY) 
     {
         _match3.SwapGridPositions(startX, startY, endX, endY);
-
-        SetBusyState(.5f, () => SetState(State.TryFindMatches));
+        
+        SetBusyState(.3f, () =>
+        {
+            _match3.FallCubesIntoEmptyPositions();
+            SetState(State.TryFindMatches);
+        });
     }
 
     private void SetBusyState(float busyTimer, Action onBusyTimerElapsedAction) 
