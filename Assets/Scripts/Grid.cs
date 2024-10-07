@@ -1,17 +1,21 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Unity.Mathematics;
 using UnityEngine;
 
 public class Grid<TGridObject> 
 {
-
-    public event EventHandler<OnGridObjectChangedEventArgs> OnGridObjectChanged;
     public class OnGridObjectChangedEventArgs : EventArgs { }
 
     private readonly int _width;
     private readonly int _height;
+    private readonly int _layerOrderIndex;
     private readonly float _cellSize;
     private readonly Vector3 _originPosition;
     private readonly TGridObject[,] _gridArray;
+    
+    private Dictionary<int2, int> _gridObjectId = new Dictionary<int2, int>(); 
 
     public Grid(int width, int height, float cellSize, Vector3 originPosition, Func<Grid<TGridObject>, int, int, TGridObject> createGridObject) 
     {
@@ -22,11 +26,18 @@ public class Grid<TGridObject>
 
         _gridArray = new TGridObject[_width, _height];
 
+        var t = 0;
         for (var x = 0; x < _gridArray.GetLength(0); x++) 
         {
             for (var y = 0; y < _gridArray.GetLength(1); y++) 
             {
                 _gridArray[x, y] = createGridObject(this, x, y);
+                
+                var gridPos = new int2(x, y);
+                
+                _gridObjectId.Add(gridPos, t);
+                Debug.Log($"GridObject - {t}, {gridPos}");
+                t++;
             }
         }
     }
@@ -46,9 +57,12 @@ public class Grid<TGridObject>
         y = Mathf.FloorToInt((worldPosition - _originPosition).y / _cellSize);
     }
 
-    public void TriggerGridObjectChanged() 
+    public int GetGridID(int x, int y)
     {
-        OnGridObjectChanged?.Invoke(this, new OnGridObjectChangedEventArgs());
+        var gridPos = new int2(x, y);
+
+        _gridObjectId.TryGetValue(gridPos, out var id);
+        return id;
     }
 
     public TGridObject GetGridObject(int x, int y)

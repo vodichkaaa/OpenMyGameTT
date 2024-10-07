@@ -20,7 +20,6 @@ public class Level : ScriptableObject
                 if (levelGridPositionList.Count - 1 < t) continue;
                 levelGridPositionList[t].x = j;
                 levelGridPositionList[t].y = i;
-
                 t++;
             }
         }

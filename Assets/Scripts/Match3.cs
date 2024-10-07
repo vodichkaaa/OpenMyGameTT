@@ -31,6 +31,11 @@ public class Match3 : MonoBehaviour {
             SetLevel(level);
         }
     }
+
+    public Level GetLevel()
+    {
+        return level;
+    }
     
     private void SetLevel(Level level) 
     {
@@ -71,7 +76,11 @@ public class Match3 : MonoBehaviour {
             }
         }
         
-        OnLevelSet?.Invoke(this, new OnLevelSetEventArgs { level = level, grid = _grid });
+        OnLevelSet?.Invoke(this, new OnLevelSetEventArgs
+        {
+            level = level, 
+            grid = _grid
+        });
     }
     
     public bool CanSwapGridPositions(int startX, int startY, int endX, int endY) 
@@ -475,9 +484,7 @@ public class Match3 : MonoBehaviour {
         public readonly int endY;
         
         public List<List<CubeGridPosition>> allLinkedCubeGridPositionList;
-
-        public PossibleMove() { }
-
+        
         public PossibleMove(int startX, int startY, int endX, int endY) 
         {
             this.startX = startX;
@@ -515,7 +522,6 @@ public class Match3 : MonoBehaviour {
         public void SetCubeGrid(CubeGrid cubeGrid) 
         {
             _cubeGrid = cubeGrid;
-            _grid.TriggerGridObjectChanged();
         }
 
         public int GetX() => _x;
@@ -534,7 +540,6 @@ public class Match3 : MonoBehaviour {
         public void DestroyCube() 
         {
             _cubeGrid?.Destroy();
-            _grid.TriggerGridObjectChanged();
         }
 
         public bool HasCubeGrid() 
