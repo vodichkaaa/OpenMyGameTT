@@ -8,38 +8,37 @@ using UnityEngine;
  * */
 public class Match3 : MonoBehaviour {
 
-    public event EventHandler OnCubeGridPositionDestroyed;
+    public delegate void BoolEventHandler(object sender, EventArgs e, bool value);
+    
+    public event BoolEventHandler OnCubeGridPositionDestroyed;
     public event EventHandler<OnLevelSetEventArgs> OnLevelSet;
-
+    
     public class OnLevelSetEventArgs: EventArgs 
     {
         public Level level;
         public Grid<CubeGridPosition> grid;
     }
 
-    [SerializeField] private Level level;
-    [SerializeField] private bool autoLoadLevel;
+    [SerializeField] 
+    private Level _level;
 
     private int _gridWidth;
     private int _gridHeight;
     private Grid<CubeGridPosition> _grid;
 
-    private void Start() 
-    {
-        if (autoLoadLevel) 
-        {
-            SetLevel(level);
-        }
-    }
-
     public Level GetLevel()
     {
-        return level;
+        return _level;
+    }
+
+    public void LoadLevel()
+    {
+        SetLevel(_level);
     }
     
-    private void SetLevel(Level level) 
+    public void SetLevel(Level level) 
     {
-        this.level = level;
+        _level = level;
 
         _gridWidth = level.width;
         _gridHeight = level.height;
@@ -72,7 +71,7 @@ public class Match3 : MonoBehaviour {
                 cubeGridPosition.SetCubeGrid(cubeGrid);
                 
                 if(levelGridPosition.cube == null)
-                    TryDestroyCubeGridPosition(cubeGridPosition);
+                    TryDestroyCubeGridPosition(cubeGridPosition, true);
             }
         }
         
@@ -82,12 +81,23 @@ public class Match3 : MonoBehaviour {
             grid = _grid
         });
     }
+
+    public void ClearLevel()
+    {
+        for (int x = 0; x < _gridWidth; x++)
+        {
+            for (int y = 0; y < _gridHeight; y++)
+            {
+                var cubeGridPosition = _grid.GetGridObject(x, y);
+                TryDestroyCubeGridPosition(cubeGridPosition, true);
+            }
+        }
+    }
     
     public bool CanSwapGridPositions(int startX, int startY, int endX, int endY) 
     {
         if (!IsValidPosition(startX, startY) || !IsValidPosition(endX, endY))
         {
-            Debug.Log("Invalid Position");
             return false;
         }
         
@@ -105,7 +115,6 @@ public class Match3 : MonoBehaviour {
         
         if (cubeStart != null && cubeEnd != null && cubeStart!.Equals(cubeEnd))
         {
-            Debug.Log("Same object");
             return false;
         }
 
@@ -149,7 +158,7 @@ public class Match3 : MonoBehaviour {
         {
             foreach (var cubeGridPosition in linkedCubeGridPositionList) 
             {
-                TryDestroyCubeGridPosition(cubeGridPosition);
+                TryDestroyCubeGridPosition(cubeGridPosition, false);
             }
 
             if (linkedCubeGridPositionList.Count >= 4) 
@@ -179,12 +188,12 @@ public class Match3 : MonoBehaviour {
         return foundMatch;
     }
 
-    private void TryDestroyCubeGridPosition(CubeGridPosition cubeGridPosition) 
+    private void TryDestroyCubeGridPosition(CubeGridPosition cubeGridPosition, bool immediately) 
     {
         if (cubeGridPosition.HasCubeGrid()) 
         {
-            cubeGridPosition.DestroyCube();
-            OnCubeGridPositionDestroyed?.Invoke(cubeGridPosition, EventArgs.Empty);
+            cubeGridPosition.DestroyCube(immediately);
+            OnCubeGridPositionDestroyed?.Invoke(cubeGridPosition, EventArgs.Empty, true);
             cubeGridPosition.ClearCubeGrid();
         }
     }
@@ -390,75 +399,6 @@ public class Match3 : MonoBehaviour {
         return allLinkedCubeGridPositionList;
     }
 
-    public List<PossibleMove> GetAllPossibleMoves() 
-    {
-        List<PossibleMove> allPossibleMovesList = new List<PossibleMove>();
-
-        // Test the Horizontal Axis first, prioritize nodes lower on the _grid
-        for (var y = 0; y < _gridHeight; y++) 
-        {
-            for (var x = 0; x < _gridWidth; x++) 
-            {
-                // Test Swap: Left, Right, Up, Down
-                List<PossibleMove> testPossibleMoveList = new List<PossibleMove>
-                {
-                    new(x, y, x - 1, y + 0),
-                    new(x, y, x + 1, y + 0),
-                    new(x, y, x + 0, y + 1),
-                    new(x, y, x + 0, y - 1)
-                };
-
-                for (var i=0; i<testPossibleMoveList.Count; i++) 
-                {
-                    PossibleMove possibleMove = testPossibleMoveList[i];
-
-                    var skipPossibleMove = false;
-
-                    for (var j = 0; j < allPossibleMovesList.Count; j++) 
-                    {
-                        var tmpPossibleMove = allPossibleMovesList[j];
-                        if (tmpPossibleMove.startX == possibleMove.startX &&
-                            tmpPossibleMove.startY == possibleMove.startY &&
-                            tmpPossibleMove.endX == possibleMove.endX &&
-                            tmpPossibleMove.endY == possibleMove.endY) 
-                        {
-                            // Already tested this combo
-                            skipPossibleMove = true;
-                            break;
-                        }
-                        if (tmpPossibleMove.startX == possibleMove.endX &&
-                            tmpPossibleMove.startY == possibleMove.endY &&
-                            tmpPossibleMove.endX == possibleMove.startX &&
-                            tmpPossibleMove.endY == possibleMove.startY) 
-                        {
-                            // Already tested this combo
-                            skipPossibleMove = true;
-                            break;
-                        }
-                    }
-
-                    if (skipPossibleMove) continue;
-
-                    SwapGridPositions(possibleMove.startX, possibleMove.startY, possibleMove.endX, possibleMove.endY); // Swap
-
-                    List<List<CubeGridPosition>> allLinkedCubeGridPositionList = GetAllMatch3Links();
-
-                    if (allLinkedCubeGridPositionList.Count > 0) 
-                    {
-                        // Making this Move results in a Match
-                        possibleMove.allLinkedCubeGridPositionList = allLinkedCubeGridPositionList;
-                        allPossibleMovesList.Add(possibleMove);
-                    }
-
-                    SwapGridPositions(possibleMove.startX, possibleMove.startY, possibleMove.endX, possibleMove.endY); // Swap Back
-                }
-
-            }
-        }
-
-        return allPossibleMovesList;
-    }
-
     private Cube GetCube(int x, int y) 
     {
         if (!IsValidPosition(x, y)) return null;
@@ -471,32 +411,6 @@ public class Match3 : MonoBehaviour {
     private bool IsValidPosition(int x, int y)
     {
         return x >= 0 && y >= 0 && x < _gridWidth && y < _gridHeight;
-    }
-    
-    /*
-     * Possible Move and what matches would happen if this move was made
-     * */
-    public class PossibleMove 
-    {
-        public readonly int startX;
-        public readonly int startY;
-        public readonly int endX;
-        public readonly int endY;
-        
-        public List<List<CubeGridPosition>> allLinkedCubeGridPositionList;
-        
-        public PossibleMove(int startX, int startY, int endX, int endY) 
-        {
-            this.startX = startX;
-            this.startY = startY;
-            this.endX = endX;
-            this.endY = endY;
-        }
-        
-        public override string ToString() 
-        {
-            return startX + ", " + startY + " => " + endX + ", " + endY + " == " + allLinkedCubeGridPositionList?.Count;
-        }
     }
     
     /*
@@ -537,9 +451,9 @@ public class Match3 : MonoBehaviour {
             _cubeGrid = null;
         }
 
-        public void DestroyCube() 
+        public void DestroyCube(bool immediately) 
         {
-            _cubeGrid?.Destroy();
+            _cubeGrid?.Destroy(immediately);
         }
 
         public bool HasCubeGrid() 
@@ -560,7 +474,7 @@ public class Match3 : MonoBehaviour {
      * */
     public class CubeGrid 
     {
-        public event EventHandler OnDestroyed;
+        public event BoolEventHandler OnDestroyed;
 
         private Cube _cube;
         private int _x;
@@ -589,10 +503,10 @@ public class Match3 : MonoBehaviour {
             _y = y;
         }
 
-        public void Destroy() 
+        public void Destroy(bool immediately) 
         {
             _isDestroyed = true;
-            OnDestroyed?.Invoke(this, EventArgs.Empty);
+            OnDestroyed?.Invoke(this, EventArgs.Empty, immediately);
         }
 
         public override string ToString() => _isDestroyed.ToString();

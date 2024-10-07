@@ -21,11 +21,16 @@ public class Match3Visual : MonoBehaviour
 
     private Grid<Match3.CubeGridPosition> _grid;
     private Dictionary<Match3.CubeGrid, CubeGridVisual> _cubeGridDictionary;
+    
+    private Camera _mainCamera;
 
     private bool _isSetup;
-    
     private bool _isTimerSet;
+    
     private float _busyTimer;
+    
+    private float _cameraStartPosX = 0.45f;
+    private float _cameraPosMultiplier = 0.4f;
     
     private State _state;
     private Action _onBusyTimerElapsedAction;
@@ -36,18 +41,24 @@ public class Match3Visual : MonoBehaviour
     private void Awake() 
     {
         //_state = State.Busy;
-        _state = State.WaitingForUser;
-        _isSetup = false;
+        //_state = State.WaitingForUser;
 
+        _mainCamera = Camera.main;
         _match3.OnLevelSet += OnLevelSet;
     }
     
     private void OnLevelSet(object sender, Match3.OnLevelSetEventArgs e) 
     {
+        _state = State.WaitingForUser;
+        _isSetup = false;
+        
+        _busyTimer = 0f;
+        _isTimerSet = false;
+        
         Setup(sender as Match3, e.grid);
     }
 
-    private void Setup(Match3 match3, Grid<Match3.CubeGridPosition> grid) 
+    private void Setup(Match3 match3, Grid<Match3.CubeGridPosition> grid)
     {
         _match3 = match3;
         _grid = grid;
@@ -56,6 +67,9 @@ public class Match3Visual : MonoBehaviour
 
         // Initialize Visual
         _cubeGridDictionary = new Dictionary<Match3.CubeGrid, CubeGridVisual>();
+
+        _mainCamera.transform.position = new Vector3(_cameraStartPosX + _cameraPosMultiplier * _grid.GetWidth(), 
+            _mainCamera.transform.position.y, _mainCamera.transform.position.z);
         
         for (var x = 0; x < _grid.GetWidth(); x++) 
         {
@@ -71,22 +85,25 @@ public class Match3Visual : MonoBehaviour
                 if(cubeGrid != null && cubeGrid.GetCube() != null)
                 {
                     Transform cubeGridVisualTransform = Instantiate(cubeGrid.GetCube().prefab.transform, position, Quaternion.identity);
-                    cubeGridVisualTransform.GetComponentInChildren<SpriteRenderer>().sortingOrder = 
-                        DefaultLayerOrder + _grid.GetGridID(x,y);
-
-                    CubeGridVisual cubeGridVisual = new CubeGridVisual(cubeGridVisualTransform, cubeGrid);
-
+                    
+                    var cubeGridVisual = new CubeGridVisual(cubeGridVisualTransform, cubeGrid)
+                    {
+                        sprite =
+                        {
+                            sortingOrder = DefaultLayerOrder + _grid.GetGridID(x,y)
+                        }
+                    };
                     _cubeGridDictionary[cubeGrid] = cubeGridVisual;
                 }
             }
         }
 
-        SetDelayedState(.5f, () => SetState(State.TryFindMatches));
+        //SetDelayedState(.5f, () => SetState(State.TryFindMatches));
 
         _isSetup = true;
     }
 
-    private void Match3_OnCubeGridPositionDestroyed(object sender, EventArgs e) 
+    private void Match3_OnCubeGridPositionDestroyed(object sender, EventArgs e, bool immediately) 
     {
         if (sender is Match3.CubeGridPosition cubeGridPosition && cubeGridPosition.GetCubeGrid() != null) 
         {
@@ -162,8 +179,11 @@ public class Match3Visual : MonoBehaviour
                 {
                     if (_match3.TryFindMatchesAndDestroyThem())
                     {
-                        _match3.FallCubesIntoEmptyPositions();
-                        SetState(State.TryFindMatches);
+                        SetDelayedState(.3f, () =>
+                        {
+                            _match3.FallCubesIntoEmptyPositions();
+                            SetState(State.TryFindMatches);
+                        });
                     }
                     else TrySetStateWaitingForUser();
                 });
@@ -253,27 +273,34 @@ public class Match3Visual : MonoBehaviour
     private class CubeGridVisual
     {
         public SpriteRenderer sprite;
+        
         public readonly Transform transform;
-        private readonly Match3.CubeGrid _cubeGrid;
-
-        //private const float MoveSpeed = 10f;
-
+        
         private readonly Cube _cube;
-
+        private readonly Match3.CubeGrid _cubeGrid;
+        private readonly Animator _anim;
+        //private const float MoveSpeed = 10f;
+        
         public CubeGridVisual(Transform transform, Match3.CubeGrid cubeGrid)
         {
             this.transform = transform;
             _cubeGrid = cubeGrid;
             sprite = transform.GetComponentInChildren<SpriteRenderer>();
+            
             _cube = _cubeGrid.GetCube();
-
+            _anim = this.transform.GetComponentInChildren<Animator>();
+            
             cubeGrid.OnDestroyed += OnGridDestroyed;
         }
 
-        private void OnGridDestroyed(object sender, EventArgs e) 
+        private void OnGridDestroyed(object sender, EventArgs e, bool immediately)
         {
-            transform.GetComponentInChildren<Animator>().SetBool(_cube.isDestroyedHash, true);
-            Destroy(transform.gameObject, _cube.destroyDelay);
+            if (immediately)
+                transform.gameObject.SetActive(false);
+            else 
+                _anim.SetBool(_cube.isDestroyedHash, true);
+            
+            //Destroy(transform.gameObject, _cube.destroyDelay);
         }
 
         public void UpdatePosition() 
@@ -282,6 +309,7 @@ public class Match3Visual : MonoBehaviour
             Vector3 moveDir = (targetPosition - transform.position);
             
             transform.position += moveDir * _cube.moveSpeed * Time.deltaTime;
+            transform.localScale = Vector3.one;
         }
     }
 }

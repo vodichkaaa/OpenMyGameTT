@@ -36,7 +36,6 @@ public class Grid<TGridObject>
                 var gridPos = new int2(x, y);
                 
                 _gridObjectId.Add(gridPos, t);
-                Debug.Log($"GridObject - {t}, {gridPos}");
                 t++;
             }
         }
