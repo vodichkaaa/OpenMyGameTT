@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd6cf24db8e89a64cb8d629f2c37fb98, type: 3}
   m_Name: Level_3
   m_EditorClassIdentifier: 
+  id: 2
   width: 4
   height: 6
   levelGridPositionList:

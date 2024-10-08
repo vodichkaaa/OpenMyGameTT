@@ -4,18 +4,18 @@ using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 
+[Serializable]
 public class Grid<TGridObject> 
 {
     public class OnGridObjectChangedEventArgs : EventArgs { }
 
-    private readonly int _width;
-    private readonly int _height;
-    private readonly int _layerOrderIndex;
-    private readonly float _cellSize;
-    private readonly Vector3 _originPosition;
-    private readonly TGridObject[,] _gridArray;
+    [SerializeField] private int _width;
+    [SerializeField] private int _height;
+    [SerializeField] private float _cellSize;
+    [SerializeField] private Vector3 _originPosition;
+    [SerializeField] private TGridObject[,] _gridArray;
     
-    private Dictionary<int2, int> _gridObjectId = new Dictionary<int2, int>(); 
+    public Dictionary<int2, int> _gridObjectId = new Dictionary<int2, int>(); 
 
     public Grid(int width, int height, float cellSize, Vector3 originPosition, Func<Grid<TGridObject>, int, int, TGridObject> createGridObject) 
     {
@@ -71,5 +71,10 @@ public class Grid<TGridObject>
             return _gridArray[x, y];
         }
         return default;
+    }
+    
+    public void SetGridObject(int x, int y, TGridObject obj)
+    {
+        _gridArray[x, y] = obj;
     }
 }

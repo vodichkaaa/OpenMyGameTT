@@ -13,6 +13,3 @@ MonoBehaviour:
   m_Name: Water
   m_EditorClassIdentifier: 
   prefab: {fileID: 3357849611372074684, guid: cba2946c2250ace42833089aa14e3d04, type: 3}
-  moveSpeed: 10
-  destroyDelay: 0.5
-  isDestroyedHash: -503028743

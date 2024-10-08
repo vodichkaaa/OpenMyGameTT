@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,9 +10,8 @@ public class Cube : ScriptableObject
     public GameObject prefab;
     
     [Header("Properties")]
-    public float moveSpeed = 10f;
-    public float destroyDelay = 0.5f;
+    [NonSerialized] public float moveSpeed = 10f;
     
-    [HideInInspector]
+    [NonSerialized] 
     public int isDestroyedHash = Animator.StringToHash("isDestroyed");
 }

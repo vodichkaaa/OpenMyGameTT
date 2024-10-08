@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using Newtonsoft.Json;
 using UnityEngine;
 
 /*
@@ -26,6 +28,8 @@ public class Match3 : MonoBehaviour {
     private int _gridHeight;
     private Grid<CubeGridPosition> _grid;
 
+    private bool _hasSaveFile;
+
     public Level GetLevel()
     {
         return _level;
@@ -33,47 +37,70 @@ public class Match3 : MonoBehaviour {
 
     public void LoadLevel()
     {
+        
         SetLevel(_level);
     }
     
     public void SetLevel(Level level) 
     {
+        _hasSaveFile = Serializer.CheckFileSave();
+        Debug.Log(_hasSaveFile);
+        
         _level = level;
 
         _gridWidth = level.width;
         _gridHeight = level.height;
         _grid = new Grid<CubeGridPosition>(_gridWidth, _gridHeight, 1f, Vector3.zero, (g, x, y) => new CubeGridPosition(g, x, y));
-
+        
         // Initialize Grid
-        for (int x = 0; x < _gridWidth; x++) {
-            for (int y = 0; y < _gridHeight; y++) {
-
-                // Get Saved LevelGridPosition
+        for (int x = 0; x < _gridWidth; x++) 
+        {
+            for (int y = 0; y < _gridHeight; y++) 
+            {
+                CubeGridPosition cubeGridPosition;
                 Level.LevelGridPosition levelGridPosition = null;
 
-                foreach (Level.LevelGridPosition tmpLevelGridPosition in level.levelGridPositionList) 
+                if (_hasSaveFile)
                 {
-                    if (tmpLevelGridPosition.x == x && tmpLevelGridPosition.y == y) 
+                    if(Serializer.HasKeyCache($"CubeGrid_{x},{y}"))
                     {
-                        levelGridPosition = tmpLevelGridPosition;
-                        break;
+                        cubeGridPosition = Serializer.GetDataJson<CubeGridPosition>($"CubeGrid_{x},{y}");
+                        Serializer.SetDataJson($"CubeGrid_{x},{y}", cubeGridPosition);
                     }
                 }
-
-                if (levelGridPosition == null) 
+                else
                 {
-                    Debug.LogError("Couldn't find LevelGridPosition with this x, y!");
-                }
+                    // Get Saved LevelGridPosition
+                    foreach (Level.LevelGridPosition tmpLevelGridPosition in level.levelGridPositionList) 
+                    {
+                        if (tmpLevelGridPosition.x == x && tmpLevelGridPosition.y == y) 
+                        {
+                            levelGridPosition = tmpLevelGridPosition;
+                            break;
+                        }
+                    }
 
-                var cube = levelGridPosition.cube;
-                var cubeGrid = new CubeGrid(cube, x, y);
-                var cubeGridPosition = _grid.GetGridObject(x, y);
-                cubeGridPosition.SetCubeGrid(cubeGrid);
-                
-                if(levelGridPosition.cube == null)
-                    TryDestroyCubeGridPosition(cubeGridPosition, true);
+                    if (levelGridPosition == null) 
+                    {
+                        Debug.LogError("Couldn't find LevelGridPosition with this x, y!");
+                    }
+                    
+                    var cube = levelGridPosition.cube;
+                    var cubeGrid = new CubeGrid(cube, x, y);
+                    cubeGridPosition = _grid.GetGridObject(x, y);
+                    cubeGridPosition.SetCubeGrid(cubeGrid);
+                    
+                    if(levelGridPosition.cube == null)
+                        TryDestroyCubeGridPosition(cubeGridPosition, true);
+                    else
+                        Serializer.SetDataJson($"CubeGrid_{x},{y}", cubeGridPosition);
+                }
             }
         }
+        
+        //Serializer.SetDataJson($"Level", level);
+        
+        Serializer.SetData("CurrentLevelIndex", level.id);
         
         OnLevelSet?.Invoke(this, new OnLevelSetEventArgs
         {
@@ -417,15 +444,16 @@ public class Match3 : MonoBehaviour {
      * Represents a single Grid Position
      * Only the Grid Position which may or may not have an actual Cube on it
      * */
+    [Serializable]
     public class CubeGridPosition 
-    {
-        private CubeGrid _cubeGrid;
+    { 
+        [SerializeField] private CubeGrid _cubeGrid;
 
-        private readonly Grid<CubeGridPosition> _grid;
+        [SerializeField] private Grid<CubeGridPosition> _grid;
         
-        private int _x;
-        private int _y;
-
+        [SerializeField] private int _x; 
+        [SerializeField] private int _y;
+        
         public CubeGridPosition(Grid<CubeGridPosition> grid, int x, int y) 
         {
             _grid = grid;
@@ -472,14 +500,16 @@ public class Match3 : MonoBehaviour {
     /*
      * Represents a Cube Object in the Grid
      * */
+    
+    [Serializable]
     public class CubeGrid 
     {
         public event BoolEventHandler OnDestroyed;
 
-        private Cube _cube;
-        private int _x;
-        private int _y;
-        private bool _isDestroyed;
+        [SerializeField] private Cube _cube;
+        [SerializeField] private int _x;
+        [SerializeField] private int _y;
+        [SerializeField] private bool _isDestroyed;
 
         public CubeGrid(Cube cube, int x, int y) 
         {
@@ -489,6 +519,8 @@ public class Match3 : MonoBehaviour {
 
             _isDestroyed = false;
         }
+
+        public bool IsDestroyed => _isDestroyed;
 
         public Cube GetCube() => _cube;
 

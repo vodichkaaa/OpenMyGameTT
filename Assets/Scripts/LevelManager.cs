@@ -14,6 +14,9 @@ public class LevelManager : MonoBehaviour
 
     private void Start()
     {
+        if (Serializer.HasKeyCache("CurrentLevelIndex"))
+            _currentLevelIndex = Serializer.GetData<int>("CurrentLevelIndex");
+        
         SetIndexLevel();
     }
 
@@ -30,5 +33,7 @@ public class LevelManager : MonoBehaviour
             _currentLevelIndex++;
         }
         else _currentLevelIndex = 0;
+        
+        Serializer.SetData("CurrentLevelIndex", _currentLevelIndex);
     }
 }

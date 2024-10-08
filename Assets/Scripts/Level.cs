@@ -3,10 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu()]
-public class Level : ScriptableObject 
+public class Level : ScriptableObject
 {
+    public int id;
+    
+    [Space(5f)]
     public int width;
     public int height;
+    
+    [Space(5f)]
     public List<LevelGridPosition> levelGridPositionList;
 
     private void OnValidate()
@@ -25,7 +30,7 @@ public class Level : ScriptableObject
         }
     }
 
-    [System.Serializable]
+    [Serializable]
     public class LevelGridPosition 
     {
         public Cube cube;

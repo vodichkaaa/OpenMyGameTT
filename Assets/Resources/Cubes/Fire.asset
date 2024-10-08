@@ -13,6 +13,3 @@ MonoBehaviour:
   m_Name: Fire
   m_EditorClassIdentifier: 
   prefab: {fileID: 3357849611372074684, guid: d4d427ed3a08f4949b356910127e08dd, type: 3}
-  moveSpeed: 10
-  destroyDelay: 0.5
-  isDestroyedHash: -503028743
