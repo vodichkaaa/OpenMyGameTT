@@ -2,17 +2,18 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using Newtonsoft.Json;
 using UnityEngine;
 
 /*
  * Represents the underlying Grid logic
  * */
-public class Match3 : MonoBehaviour {
-
+public class Match3 : MonoBehaviour
+{
     public delegate void BoolEventHandler(object sender, EventArgs e, bool value);
+    public delegate void CubesHandler();
     
     public event BoolEventHandler OnCubeGridPositionDestroyed;
+    public event CubesHandler OnCubeDestroyed; 
     public event EventHandler<OnLevelSetEventArgs> OnLevelSet;
     
     public class OnLevelSetEventArgs: EventArgs 
@@ -20,57 +21,64 @@ public class Match3 : MonoBehaviour {
         public Level level;
         public Grid<CubeGridPosition> grid;
     }
-
-    [SerializeField] 
+    
+    [HideInInspector] public GridPositions<CubeGridPosition> gridPositions;
+    [HideInInspector] public bool hasSaveFile;
+    
     private Level _level;
-
+    private Grid<CubeGridPosition> _grid;
+    
     private int _gridWidth;
     private int _gridHeight;
-    private Grid<CubeGridPosition> _grid;
-
-    private bool _hasSaveFile;
-
-    public Level GetLevel()
+    private int _currentActiveCubes;
+    
+    public int CurrentActiveCubes
     {
-        return _level;
+        get => _currentActiveCubes;
+        set => _currentActiveCubes = value;
     }
-
+    
     public void LoadLevel()
     {
-        
         SetLevel(_level);
     }
     
-    public void SetLevel(Level level) 
+    public void SetLevel(Level level)
     {
-        _hasSaveFile = Serializer.CheckFileSave();
-        Debug.Log(_hasSaveFile);
+        hasSaveFile = SaveManager.HasSaveFile(SaveManager.GridData);
+        _currentActiveCubes = 0;
         
         _level = level;
 
         _gridWidth = level.width;
         _gridHeight = level.height;
         _grid = new Grid<CubeGridPosition>(_gridWidth, _gridHeight, 1f, Vector3.zero, (g, x, y) => new CubeGridPosition(g, x, y));
-        
-        // Initialize Grid
-        for (int x = 0; x < _gridWidth; x++) 
-        {
-            for (int y = 0; y < _gridHeight; y++) 
-            {
-                CubeGridPosition cubeGridPosition;
-                Level.LevelGridPosition levelGridPosition = null;
 
-                if (_hasSaveFile)
+        gridPositions = new GridPositions<CubeGridPosition>
+        {
+            positionsList = new List<CubeGridPosition>(_gridWidth * _gridHeight)
+        };
+
+        if (hasSaveFile)
+        {
+            gridPositions = SaveManager.GetDataJson<GridPositions<CubeGridPosition>>(SaveManager.GridData);
+            
+            for (int i = 0; i < gridPositions.positionsList.Count; i++)
+            {
+                var cubeGridPosition = gridPositions.positionsList[i];
+                if (cubeGridPosition.GetCubeGrid() != null && cubeGridPosition.GetCubeGrid().GetCube() != null)
+                    _currentActiveCubes++;
+            }
+        }
+        else
+        {
+            for (int x = 0; x < _gridWidth; x++) 
+            {
+                for (int y = 0; y < _gridHeight; y++) 
                 {
-                    if(Serializer.HasKeyCache($"CubeGrid_{x},{y}"))
-                    {
-                        cubeGridPosition = Serializer.GetDataJson<CubeGridPosition>($"CubeGrid_{x},{y}");
-                        Serializer.SetDataJson($"CubeGrid_{x},{y}", cubeGridPosition);
-                    }
-                }
-                else
-                {
-                    // Get Saved LevelGridPosition
+                    CubeGridPosition cubeGridPosition;
+                    Level.LevelGridPosition levelGridPosition = null;
+                
                     foreach (Level.LevelGridPosition tmpLevelGridPosition in level.levelGridPositionList) 
                     {
                         if (tmpLevelGridPosition.x == x && tmpLevelGridPosition.y == y) 
@@ -93,14 +101,26 @@ public class Match3 : MonoBehaviour {
                     if(levelGridPosition.cube == null)
                         TryDestroyCubeGridPosition(cubeGridPosition, true);
                     else
-                        Serializer.SetDataJson($"CubeGrid_{x},{y}", cubeGridPosition);
+                        _currentActiveCubes++;
+                    
+                    gridPositions.positionsList.Add(cubeGridPosition);
+                    
+                    //SaveManager.SetDataJson($"CubeGrid_{x},{y}", cubeGridPosition);
                 }
             }
         }
         
-        //Serializer.SetDataJson($"Level", level);
+        // Initialize Save
         
-        Serializer.SetData("CurrentLevelIndex", level.id);
+        SaveManager.SetDataJson(SaveManager.GridData, gridPositions, true);
+        
+        /*var json = JsonUtility.ToJson(_gridPositions, true);
+        File.WriteAllText(Application.dataPath + "/CubeGrid.json", json);
+        
+        var levelIDJson = JsonUtility.ToJson(level.id, true);
+        File.WriteAllText(Application.dataPath + "/CurrentLevelIndex.json", levelIDJson);*/
+        
+        //SaveManager.SetData("CurrentLevelIndex", level.id);
         
         OnLevelSet?.Invoke(this, new OnLevelSetEventArgs
         {
@@ -109,8 +129,11 @@ public class Match3 : MonoBehaviour {
         });
     }
 
-    public void ClearLevel()
+    public void ClearLevel(bool clearSave)
     {
+        if(clearSave)
+            SaveManager.DeleteSaveFile(SaveManager.GridData);
+        
         for (int x = 0; x < _gridWidth; x++)
         {
             for (int y = 0; y < _gridHeight; y++)
@@ -178,35 +201,13 @@ public class Match3 : MonoBehaviour {
         List<List<CubeGridPosition>> allLinkedCubeGridPositionList = GetAllMatch3Links();
 
         var foundMatch = false;
-
-        List<Vector2Int> explosionGridPositionList = new List<Vector2Int>();
         
         foreach (List<CubeGridPosition> linkedCubeGridPositionList in allLinkedCubeGridPositionList) 
         {
             foreach (var cubeGridPosition in linkedCubeGridPositionList) 
             {
                 TryDestroyCubeGridPosition(cubeGridPosition, false);
-            }
-
-            if (linkedCubeGridPositionList.Count >= 4) 
-            {
-                // More than 4 linked
-
-                // Special Explosion Cube
-                var explosionOriginCubeGridPosition = linkedCubeGridPositionList[0];
-
-                var explosionX = explosionOriginCubeGridPosition.GetX();
-                var explosionY = explosionOriginCubeGridPosition.GetY();
-
-                // Explode all 8 neighbours
-                explosionGridPositionList.Add(new Vector2Int(explosionX - 1, explosionY - 1));
-                explosionGridPositionList.Add(new Vector2Int(explosionX + 0, explosionY - 1));
-                explosionGridPositionList.Add(new Vector2Int(explosionX + 1, explosionY - 1));
-                explosionGridPositionList.Add(new Vector2Int(explosionX - 1, explosionY + 0));
-                explosionGridPositionList.Add(new Vector2Int(explosionX + 1, explosionY + 0));
-                explosionGridPositionList.Add(new Vector2Int(explosionX - 1, explosionY + 1));
-                explosionGridPositionList.Add(new Vector2Int(explosionX + 0, explosionY + 1));
-                explosionGridPositionList.Add(new Vector2Int(explosionX + 1, explosionY + 1));
+                _currentActiveCubes--;
             }
 
             foundMatch = true;
@@ -252,6 +253,11 @@ public class Match3 : MonoBehaviour {
                 }
             }
         }
+    }
+    
+    public void InvokeCubeDestroyEvent()
+    {
+        OnCubeDestroyed?.Invoke();
     }
 
     private bool HasMatch3Link(int x, int y) 
@@ -440,10 +446,13 @@ public class Match3 : MonoBehaviour {
         return x >= 0 && y >= 0 && x < _gridWidth && y < _gridHeight;
     }
     
-    /*
-     * Represents a single Grid Position
-     * Only the Grid Position which may or may not have an actual Cube on it
-     * */
+    
+    [Serializable]
+    public class GridPositions<TCubeGridPosition>
+    {
+        public List<TCubeGridPosition> positionsList;
+    }
+    
     [Serializable]
     public class CubeGridPosition 
     { 
@@ -519,9 +528,7 @@ public class Match3 : MonoBehaviour {
 
             _isDestroyed = false;
         }
-
-        public bool IsDestroyed => _isDestroyed;
-
+        
         public Cube GetCube() => _cube;
 
         public Vector3 GetWorldPosition() 

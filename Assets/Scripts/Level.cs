@@ -5,8 +5,6 @@ using UnityEngine;
 [CreateAssetMenu()]
 public class Level : ScriptableObject
 {
-    public int id;
-    
     [Space(5f)]
     public int width;
     public int height;

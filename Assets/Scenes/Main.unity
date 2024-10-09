@@ -208,14 +208,14 @@ MonoBehaviour:
       - m_Target: {fileID: 1698841875}
         m_TargetAssemblyTypeName: Match3, Assembly-CSharp
         m_MethodName: ClearLevel
-        m_Mode: 1
+        m_Mode: 6
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
           m_StringArgument: 
-          m_BoolArgument: 0
+          m_BoolArgument: 1
         m_CallState: 2
       - m_Target: {fileID: 1698841875}
         m_TargetAssemblyTypeName: Match3, Assembly-CSharp
@@ -425,7 +425,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &537243293
 RectTransform:
   m_ObjectHideFlags: 0
@@ -626,14 +626,14 @@ MonoBehaviour:
       - m_Target: {fileID: 346722689}
         m_TargetAssemblyTypeName: LevelManager, Assembly-CSharp
         m_MethodName: SetIndexLevel
-        m_Mode: 1
+        m_Mode: 6
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
           m_StringArgument: 
-          m_BoolArgument: 0
+          m_BoolArgument: 1
         m_CallState: 2
 --- !u!114 &632661807
 MonoBehaviour:
@@ -1354,6 +1354,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _level: {fileID: 11400000, guid: 654573d43f46f4447bb20424869aacc7, type: 2}
+  _currentActiveCubes: 0
+  gridPositions:
+    currentLevelIndex: 0
+    positionsList: []
 --- !u!4 &1698841876
 Transform:
   m_ObjectHideFlags: 0

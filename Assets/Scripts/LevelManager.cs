@@ -9,31 +9,53 @@ public class LevelManager : MonoBehaviour
     private Level[] _levels;
     [SerializeField]
     private Match3 _match3;
-    
-    private int _currentLevelIndex = 0;
+    private LevelInfo _levelInfo;
+
+    private void Awake()
+    {
+        _match3.OnCubeDestroyed += OnCubeDestroyed;
+    }
 
     private void Start()
     {
-        if (Serializer.HasKeyCache("CurrentLevelIndex"))
-            _currentLevelIndex = Serializer.GetData<int>("CurrentLevelIndex");
+        /*if (SaveManager.HasKeyCache("CurrentLevelIndex"))
+            _currentLevelIndex = SaveManager.GetData<int>("CurrentLevelIndex");*/
+
+        _levelInfo = SaveManager.HasSaveFile(SaveManager.LevelData) ? 
+            SaveManager.GetDataJson<LevelInfo>(SaveManager.LevelData) : new LevelInfo();
         
-        SetIndexLevel();
+        SetIndexLevel(false);
     }
 
-    public void SetIndexLevel()
+    private void OnCubeDestroyed()
     {
-        _match3.ClearLevel();
-        _match3.SetLevel(_levels[_currentLevelIndex]);
+        if(_match3.CurrentActiveCubes <= 0)
+        {
+            SetIndex();
+            SetIndexLevel(true);
+        }
+    }
+
+    public void SetIndexLevel(bool clearSave)
+    {
+        _match3.ClearLevel(clearSave);
+        _match3.SetLevel(_levels[_levelInfo.currentLevelIndex]);
     }
     
     public void SetIndex()
     {
-        if (_currentLevelIndex >= 0 && _currentLevelIndex < _levels.Length - 1)
+        if (_levelInfo.currentLevelIndex >= 0 && _levelInfo.currentLevelIndex < _levels.Length - 1)
         {
-            _currentLevelIndex++;
+            _levelInfo.currentLevelIndex++;
         }
-        else _currentLevelIndex = 0;
+        else _levelInfo.currentLevelIndex = 0;
         
-        Serializer.SetData("CurrentLevelIndex", _currentLevelIndex);
+        SaveManager.SetDataJson(SaveManager.LevelData, _levelInfo, true);
     }
+}
+
+[Serializable]
+public class LevelInfo
+{
+    public int currentLevelIndex;
 }

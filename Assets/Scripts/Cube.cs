@@ -12,6 +12,5 @@ public class Cube : ScriptableObject
     [Header("Properties")]
     [NonSerialized] public float moveSpeed = 10f;
     
-    [NonSerialized] 
-    public int isDestroyedHash = Animator.StringToHash("isDestroyed");
+    [NonSerialized] public int isDestroyedHash = Animator.StringToHash("isDestroyed");
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /*
@@ -21,24 +22,24 @@ public class Match3Visual : MonoBehaviour
     private Grid<Match3.CubeGridPosition> _grid;
     private Dictionary<Match3.CubeGrid, CubeGridVisual> _cubeGridDictionary;
     
+    private State _state;
+    private Action _onBusyTimerElapsedAction;
+    
     private Camera _mainCamera;
-
+    
+    private const int DefaultLayerOrder = 10;
+    
+    private const float CameraStartPosX = 0.45f;
+    private const float CameraPosMultiplier = 0.4f;
+    
     private bool _isSetup;
     private bool _isTimerSet;
     
-    private float _busyTimer;
-    
-    private float _cameraStartPosX = 0.45f;
-    private float _cameraPosMultiplier = 0.4f;
-    
-    private State _state;
-    private Action _onBusyTimerElapsedAction;
-
     private int _startDragX;
     private int _startDragY;
     
-    private const int DefaultLayerOrder = 10;
-
+    private float _busyTimer;
+    
     private void Awake() 
     {
         //_state = State.Busy;
@@ -69,23 +70,39 @@ public class Match3Visual : MonoBehaviour
         // Initialize Visual
         _cubeGridDictionary = new Dictionary<Match3.CubeGrid, CubeGridVisual>();
 
-        _mainCamera.transform.position = new Vector3(_cameraStartPosX + _cameraPosMultiplier * _grid.GetWidth(), 
+        _mainCamera.transform.position = new Vector3(CameraStartPosX + CameraPosMultiplier * _grid.GetWidth(), 
             _mainCamera.transform.position.y, _mainCamera.transform.position.z);
-        
+
+        var t = 0;
         for (var x = 0; x < _grid.GetWidth(); x++) 
         {
             for (var y = 0; y < _grid.GetHeight(); y++) 
             {
                 Match3.CubeGridPosition cubeGridPosition;
-                if (Serializer.HasKeyCache($"CubeGrid_{x},{y}"))
+                
+                if (_match3.hasSaveFile)
                 {
-                    cubeGridPosition = Serializer.GetDataJson<Match3.CubeGridPosition>($"CubeGrid_{x},{y}");
+                    cubeGridPosition = match3.gridPositions.positionsList[t];
+                    
+                    if(cubeGridPosition.GetCubeGrid() != null && cubeGridPosition.GetCubeGrid().GetCube() != null)
+                    {
+                        _grid.SetGridObject(x, y, cubeGridPosition);
+                    }
+                    
+                    t++;
+                }
+                else
+                {
+                    cubeGridPosition = _grid.GetGridObject(x, y);
+                }
+                /*if (SaveManager.HasKeyCache($"CubeGrid_{x},{y}"))
+                {
+                    cubeGridPosition = SaveManager.GetDataJson<Match3.CubeGridPosition>($"CubeGrid_{x},{y}");
                     
                     if(cubeGridPosition.GetCubeGrid().GetCube() != null) 
                         _grid.SetGridObject(x, y, cubeGridPosition);
                 }
-                else
-                    cubeGridPosition = _grid.GetGridObject(x, y);
+                else*/
                 
                 Match3.CubeGrid cubeGrid = cubeGridPosition.GetCubeGrid();
                 
@@ -107,12 +124,12 @@ public class Match3Visual : MonoBehaviour
                         }
                     };
                     _cubeGridDictionary[cubeGrid] = cubeGridVisual;
+                    
+                    //_match3.CurrentActiveCubes++;
                 }
             }
         }
         
-        //SetDelayedState(.5f, () => SetState(State.TryFindMatches));
-
         _isSetup = true;
     }
 
@@ -178,29 +195,22 @@ public class Match3Visual : MonoBehaviour
             }
             case State.TryFindMatches:
             {
-                /*if (_match3.TryFindMatchesAndDestroyThem())
+                SetDelayedState(0.1f, () =>
                 {
-                    SeDelayedState(.3f, () =>
+                    if (_cubeGridDictionary.All(obj => obj.Value.isGrounded))
                     {
-                        _match3.FallCubesIntoEmptyPositions();
-                        SeDelayedState(.2f, () => SetState(State.TryFindMatches));
-                    });
-                }
-                else TrySetStateWaitingForUser();*/
-
-                SetDelayedState(.3f, () =>
-                {
-                    if (_match3.TryFindMatchesAndDestroyThem())
-                    {
-                        SetDelayedState(.3f, () =>
+                        if (_match3.TryFindMatchesAndDestroyThem())
                         {
-                            _match3.FallCubesIntoEmptyPositions();
-                            SetState(State.TryFindMatches);
-                        });
+                            SetDelayedState(0.3f, () =>
+                            {
+                                _match3.FallCubesIntoEmptyPositions();
+                                SetState(State.TryFindMatches);
+                            });
+                        }
+                        else TrySetStateWaitingForUser();
                     }
-                    else TrySetStateWaitingForUser();
+                    else SetState(State.TryFindMatches);
                 });
-
                 break;
             }
             default:
@@ -234,12 +244,12 @@ public class Match3Visual : MonoBehaviour
         var startCubeGrid = _grid.GetGridObject(startX, startY).GetCubeGrid();
         var endCubeGrid = _grid.GetGridObject(endX, endY).GetCubeGrid();
         
-        if (startCubeGrid != null)
+        if (startCubeGrid != null && startCubeGrid.GetCube() != null)
         {
             var startVisual = _cubeGridDictionary[startCubeGrid];
             startVisual.sprite.sortingOrder = DefaultLayerOrder + _grid.GetGridID(startX, startY);
         }
-        if (endCubeGrid != null)
+        if (endCubeGrid != null && endCubeGrid.GetCube() != null)
         {
             var endVisual = _cubeGridDictionary[endCubeGrid];
             endVisual.sprite.sortingOrder = DefaultLayerOrder + _grid.GetGridID(endX, endY);
@@ -268,22 +278,13 @@ public class Match3Visual : MonoBehaviour
         _isTimerSet = true;
     }
 
-    private void TrySetStateWaitingForUser() 
+    private void TrySetStateWaitingForUser()
     {
-        for (var x = 0; x < _grid.GetWidth(); x++)
-        {
-            for (var y = 0; y < _grid.GetHeight(); y++)
-            {
-                var cubeGridPosition = _grid.GetGridObject(x, y);
-                if (cubeGridPosition.GetCubeGrid() != null && cubeGridPosition.GetCubeGrid().GetCube() != null)
-                {
-                    Serializer.SetDataJson($"CubeGrid_{x},{y}", cubeGridPosition);
-                }
-                else Serializer.DeleteKey($"CubeGrid_{x},{y}");
-            }
-        }
+        SaveManager.SetDataJson(SaveManager.GridData, _match3.gridPositions, true);
         
         SetState(State.WaitingForUser);
+
+        _match3.InvokeCubeDestroyEvent();
     }
 
     private void SetState(State state) 
@@ -306,6 +307,8 @@ public class Match3Visual : MonoBehaviour
         private readonly Cube _cube;
         [SerializeField] private Match3.CubeGrid _cubeGrid;
         private readonly Animator _anim;
+
+        public bool isGrounded;
         //private const float MoveSpeed = 10f;
         
         public CubeGridVisual(Transform transform, Match3.CubeGrid cubeGrid)
@@ -326,17 +329,30 @@ public class Match3Visual : MonoBehaviour
                 transform.gameObject.SetActive(false);
             else 
                 _anim.SetBool(_cube.isDestroyedHash, true);
-            
+
+            isGrounded = false;
+
             //Destroy(transform.gameObject, _cube.destroyDelay);
         }
-
+        
         public void UpdatePosition() 
         {
-            Vector3 targetPosition = _cubeGrid.GetWorldPosition();
-            Vector3 moveDir = (targetPosition - transform.position);
+            var targetPosition = _cubeGrid.GetWorldPosition();
+            var moveDir = (targetPosition - transform.position);
             
+            if(moveDir.magnitude > 0.05f)
+            {
+                isGrounded = false;
+            }
+            
+            if (isGrounded) return;
             transform.position += moveDir * _cube.moveSpeed * Time.deltaTime;
             transform.localScale = Vector3.one;
+
+            if (moveDir.magnitude <= 0.05f)
+            {
+                isGrounded = true;
+            }
         }
     }
 }
