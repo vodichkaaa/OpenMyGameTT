@@ -15,7 +15,7 @@ public class Grid<TGridObject>
     [SerializeField] private Vector3 _originPosition;
     [SerializeField] private TGridObject[,] _gridArray;
     
-    public Dictionary<int2, int> _gridObjectId = new Dictionary<int2, int>(); 
+    public Dictionary<int2, int> gridObjectId = new Dictionary<int2, int>(); 
 
     public Grid(int width, int height, float cellSize, Vector3 originPosition, Func<Grid<TGridObject>, int, int, TGridObject> createGridObject) 
     {
@@ -35,7 +35,7 @@ public class Grid<TGridObject>
                 
                 var gridPos = new int2(x, y);
                 
-                _gridObjectId.Add(gridPos, t);
+                gridObjectId.Add(gridPos, t);
                 t++;
             }
         }
@@ -60,7 +60,7 @@ public class Grid<TGridObject>
     {
         var gridPos = new int2(x, y);
 
-        _gridObjectId.TryGetValue(gridPos, out var id);
+        gridObjectId.TryGetValue(gridPos, out var id);
         return id;
     }
 

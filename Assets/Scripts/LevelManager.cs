@@ -1,7 +1,6 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class LevelManager : MonoBehaviour
 {
@@ -9,6 +8,7 @@ public class LevelManager : MonoBehaviour
     private Level[] _levels;
     [SerializeField]
     private Match3 _match3;
+    
     private LevelInfo _levelInfo;
 
     private void Awake()
@@ -18,9 +18,6 @@ public class LevelManager : MonoBehaviour
 
     private void Start()
     {
-        /*if (SaveManager.HasKeyCache("CurrentLevelIndex"))
-            _currentLevelIndex = SaveManager.GetData<int>("CurrentLevelIndex");*/
-
         _levelInfo = SaveManager.HasSaveFile(SaveManager.LevelData) ? 
             SaveManager.GetDataJson<LevelInfo>(SaveManager.LevelData) : new LevelInfo();
         

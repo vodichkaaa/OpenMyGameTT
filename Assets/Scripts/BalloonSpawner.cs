@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -76,8 +74,8 @@ public class BalloonSpawner : MonoBehaviour
     
     private bool CheckTargetVisibility(Transform target)
     {
-        var isOffScreen = target.localPosition.x <= -(Screen.width / 2 + ScreenBorder) || 
-                          target.localPosition.x >= Screen.width / 2 + ScreenBorder;
+        var isOffScreen = target.localPosition.x <= -(Screen.width / 2f + ScreenBorder) || 
+                          target.localPosition.x >= Screen.width / 2f + ScreenBorder;
         
         return isOffScreen;
     }

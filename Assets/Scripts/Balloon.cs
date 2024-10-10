@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -57,7 +55,7 @@ public class Balloon : MonoBehaviour
 
     private void Move(bool isFacingRight)
     {
-        var movePos = transform.right * Time.deltaTime * _moveSpeed;
+        var movePos = transform.right * (Time.deltaTime * _moveSpeed);
         
         if (isFacingRight) 
             _pos += movePos;

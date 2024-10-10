@@ -1,13 +1,13 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using UnityEngine;
 
-/*
- * Represents the underlying Grid logic
- * */
-public class Match3 : MonoBehaviour
+public class OnLevelSetEventArgs: EventArgs
+{
+    public Grid<CubeGridPosition> grid;
+}
+
+public class Match3: MonoBehaviour
 {
     public delegate void BoolEventHandler(object sender, EventArgs e, bool value);
     public delegate void CubesHandler();
@@ -15,12 +15,6 @@ public class Match3 : MonoBehaviour
     public event BoolEventHandler OnCubeGridPositionDestroyed;
     public event CubesHandler OnCubeDestroyed; 
     public event EventHandler<OnLevelSetEventArgs> OnLevelSet;
-    
-    public class OnLevelSetEventArgs: EventArgs 
-    {
-        public Level level;
-        public Grid<CubeGridPosition> grid;
-    }
     
     [HideInInspector] public GridPositions<CubeGridPosition> gridPositions;
     [HideInInspector] public bool hasSaveFile;
@@ -31,13 +25,9 @@ public class Match3 : MonoBehaviour
     private int _gridWidth;
     private int _gridHeight;
     private int _currentActiveCubes;
-    
-    public int CurrentActiveCubes
-    {
-        get => _currentActiveCubes;
-        set => _currentActiveCubes = value;
-    }
-    
+
+    public int CurrentActiveCubes => _currentActiveCubes;
+
     public void LoadLevel()
     {
         SetLevel(_level);
@@ -49,11 +39,10 @@ public class Match3 : MonoBehaviour
         _currentActiveCubes = 0;
         
         _level = level;
-
         _gridWidth = level.width;
         _gridHeight = level.height;
+        
         _grid = new Grid<CubeGridPosition>(_gridWidth, _gridHeight, 1f, Vector3.zero, (g, x, y) => new CubeGridPosition(g, x, y));
-
         gridPositions = new GridPositions<CubeGridPosition>
         {
             positionsList = new List<CubeGridPosition>(_gridWidth * _gridHeight)
@@ -62,24 +51,22 @@ public class Match3 : MonoBehaviour
         if (hasSaveFile)
         {
             gridPositions = SaveManager.GetDataJson<GridPositions<CubeGridPosition>>(SaveManager.GridData);
-            
-            for (int i = 0; i < gridPositions.positionsList.Count; i++)
+
+            foreach (var cubeGridPosition in gridPositions.positionsList)
             {
-                var cubeGridPosition = gridPositions.positionsList[i];
                 if (cubeGridPosition.GetCubeGrid() != null && cubeGridPosition.GetCubeGrid().GetCube() != null)
                     _currentActiveCubes++;
             }
         }
         else
         {
-            for (int x = 0; x < _gridWidth; x++) 
+            for (var x = 0; x < _gridWidth; x++) 
             {
-                for (int y = 0; y < _gridHeight; y++) 
+                for (var y = 0; y < _gridHeight; y++) 
                 {
-                    CubeGridPosition cubeGridPosition;
-                    Level.LevelGridPosition levelGridPosition = null;
+                    LevelGridPosition levelGridPosition = null;
                 
-                    foreach (Level.LevelGridPosition tmpLevelGridPosition in level.levelGridPositionList) 
+                    foreach (var tmpLevelGridPosition in level.levelGridPositionList) 
                     {
                         if (tmpLevelGridPosition.x == x && tmpLevelGridPosition.y == y) 
                         {
@@ -93,38 +80,25 @@ public class Match3 : MonoBehaviour
                         Debug.LogError("Couldn't find LevelGridPosition with this x, y!");
                     }
                     
-                    var cube = levelGridPosition.cube;
+                    var cube = levelGridPosition?.cube;
                     var cubeGrid = new CubeGrid(cube, x, y);
-                    cubeGridPosition = _grid.GetGridObject(x, y);
+                    var cubeGridPosition = _grid.GetGridObject(x, y);
                     cubeGridPosition.SetCubeGrid(cubeGrid);
                     
-                    if(levelGridPosition.cube == null)
+                    if(levelGridPosition?.cube == null)
                         TryDestroyCubeGridPosition(cubeGridPosition, true);
                     else
                         _currentActiveCubes++;
                     
                     gridPositions.positionsList.Add(cubeGridPosition);
-                    
-                    //SaveManager.SetDataJson($"CubeGrid_{x},{y}", cubeGridPosition);
                 }
             }
         }
         
-        // Initialize Save
-        
         SaveManager.SetDataJson(SaveManager.GridData, gridPositions, true);
-        
-        /*var json = JsonUtility.ToJson(_gridPositions, true);
-        File.WriteAllText(Application.dataPath + "/CubeGrid.json", json);
-        
-        var levelIDJson = JsonUtility.ToJson(level.id, true);
-        File.WriteAllText(Application.dataPath + "/CurrentLevelIndex.json", levelIDJson);*/
-        
-        //SaveManager.SetData("CurrentLevelIndex", level.id);
         
         OnLevelSet?.Invoke(this, new OnLevelSetEventArgs
         {
-            level = level, 
             grid = _grid
         });
     }
@@ -151,12 +125,6 @@ public class Match3 : MonoBehaviour
             return false;
         }
         
-        /*if (_grid.GetGridObject(startX, startY) == default || _grid.GetGridObject(endX, endY) == default)
-        {
-            Debug.Log("Invalid GridObject");
-            return false;
-        }*/
-
         var gridObjStart = _grid.GetGridObject(startX, startY);
         var gridObjEnd = _grid.GetGridObject(endX, endY);
         
@@ -167,12 +135,7 @@ public class Match3 : MonoBehaviour
         {
             return false;
         }
-
-        if (cubeEnd == null && startY < endY) return false; //Swapping with free space over cube
-        
-        //SwapGridPositions(startX, startY, endX, endY); // Swap
-        //bool hasLinkAfterSwap = HasMatch3Link(startX, startY) || HasMatch3Link(endX, endY);
-        //SwapGridPositions(startX, startY, endX, endY); // Swap Back
+        if (cubeEnd == null && startY < endY) return false;
         
         return startX != endX || startY != endY;
     }
@@ -183,11 +146,11 @@ public class Match3 : MonoBehaviour
 
         if (startX == endX && startY == endY) return; // Same Position
 
-        CubeGridPosition startCubeGridPosition = _grid.GetGridObject(startX, startY);
-        CubeGridPosition endCubeGridPosition = _grid.GetGridObject(endX, endY);
+        var startCubeGridPosition = _grid.GetGridObject(startX, startY);
+        var endCubeGridPosition = _grid.GetGridObject(endX, endY);
 
-        CubeGrid startCubeGrid = startCubeGridPosition.GetCubeGrid();
-        CubeGrid endCubeGrid = endCubeGridPosition.GetCubeGrid();
+        var startCubeGrid = startCubeGridPosition.GetCubeGrid();
+        var endCubeGrid = endCubeGridPosition.GetCubeGrid();
         
         startCubeGrid?.SetCubeXY(endX, endY);
         endCubeGrid?.SetCubeXY(startX, startY);
@@ -198,18 +161,16 @@ public class Match3 : MonoBehaviour
 
     public bool TryFindMatchesAndDestroyThem() 
     {
-        List<List<CubeGridPosition>> allLinkedCubeGridPositionList = GetAllMatch3Links();
+        var allLinkedCubeGridPositionList = GetAllMatch3Links();
 
         var foundMatch = false;
         
-        foreach (List<CubeGridPosition> linkedCubeGridPositionList in allLinkedCubeGridPositionList) 
+        foreach (var linkedCubeGridPositionList in allLinkedCubeGridPositionList) 
         {
             foreach (var cubeGridPosition in linkedCubeGridPositionList) 
             {
                 TryDestroyCubeGridPosition(cubeGridPosition, false);
-                _currentActiveCubes--;
             }
-
             foundMatch = true;
         }
         
@@ -223,6 +184,9 @@ public class Match3 : MonoBehaviour
             cubeGridPosition.DestroyCube(immediately);
             OnCubeGridPositionDestroyed?.Invoke(cubeGridPosition, EventArgs.Empty, true);
             cubeGridPosition.ClearCubeGrid();
+
+            if (immediately) return;
+            _currentActiveCubes--;
         }
     }
 
@@ -232,7 +196,7 @@ public class Match3 : MonoBehaviour
         {
             for (var y = 0; y < _gridHeight; y++) 
             {
-                CubeGridPosition cubeGridPosition = _grid.GetGridObject(x, y);
+                var cubeGridPosition = _grid.GetGridObject(x, y);
 
                 if (!cubeGridPosition.IsEmpty()) 
                 {
@@ -262,7 +226,7 @@ public class Match3 : MonoBehaviour
 
     private bool HasMatch3Link(int x, int y) 
     {
-        List<CubeGridPosition> linkedCubeGridPositionList = GetMatch3Links(x, y);
+        var linkedCubeGridPositionList = GetMatch3Links(x, y);
         return linkedCubeGridPositionList is { Count: >= 3 };
     }
 
@@ -310,7 +274,7 @@ public class Match3 : MonoBehaviour
         if (horizontalLinkAmount >= 3) 
         {
             // Has 3 horizontal linked gems
-            List<CubeGridPosition> linkedCubeGridPositionList = new List<CubeGridPosition>();
+            var linkedCubeGridPositionList = new List<CubeGridPosition>();
             var leftMostX = x - leftLinkAmount;
             
             for (var i = 0; i < horizontalLinkAmount; i++) 
@@ -326,7 +290,7 @@ public class Match3 : MonoBehaviour
         {
             if (IsValidPosition(x, y + i))
             {
-                Cube nextCube = GetCube(x, y + i);
+                var nextCube = GetCube(x, y + i);
                 if (nextCube == cube)
                 {
                     // Same Cube
@@ -359,7 +323,7 @@ public class Match3 : MonoBehaviour
         if (verticalLinkAmount >= 3) 
         {
             // Has 3 vertical linked gems
-            List<CubeGridPosition> linkedCubeGridPositionList = new List<CubeGridPosition>();
+            var linkedCubeGridPositionList = new List<CubeGridPosition>();
             var downMostY = y - downLinkAmount;
             
             for (var i = 0; i < verticalLinkAmount; i++) 
@@ -375,7 +339,7 @@ public class Match3 : MonoBehaviour
     private List<List<CubeGridPosition>> GetAllMatch3Links() 
     {
         // Finds all the links with the current _grid
-        List<List<CubeGridPosition>> allLinkedCubeGridPositionList = new List<List<CubeGridPosition>>();
+        var allLinkedCubeGridPositionList = new List<List<CubeGridPosition>>();
 
         for (var x = 0; x < _gridWidth; x++) 
         {
@@ -383,7 +347,7 @@ public class Match3 : MonoBehaviour
             {
                 if (HasMatch3Link(x, y)) 
                 {
-                    List<CubeGridPosition> linkedCubeGridPositionList = GetMatch3Links(x, y);
+                    var linkedCubeGridPositionList = GetMatch3Links(x, y);
 
                     if (allLinkedCubeGridPositionList.Count == 0) 
                     {
@@ -393,27 +357,21 @@ public class Match3 : MonoBehaviour
                     {
                         var uniqueNewLink = true;
 
-                        foreach (List<CubeGridPosition> tmpLinkedCubeGridPositionList in allLinkedCubeGridPositionList) 
+                        foreach (var tmpLinkedCubeGridPositionList in allLinkedCubeGridPositionList) 
                         {
                             if (linkedCubeGridPositionList.Count == tmpLinkedCubeGridPositionList.Count) 
                             {
                                 // Same number of links
-                                // Are they all the same?
                                 var allTheSame = true;
                                 
                                 for (var i = 0; i < linkedCubeGridPositionList.Count; i++) 
                                 {
-                                    if (linkedCubeGridPositionList[i] == tmpLinkedCubeGridPositionList[i]) 
-                                    {
-                                        // This one is the same, link is not unique
-                                    } 
-                                    else 
+                                    if (linkedCubeGridPositionList[i] != tmpLinkedCubeGridPositionList[i]) 
                                     {
                                         allTheSame = false;
                                         break;
-                                    }
+                                    } 
                                 }
-
                                 if (allTheSame)
                                 {
                                     // Nodes are all the same, not a new unique link
@@ -421,7 +379,6 @@ public class Match3 : MonoBehaviour
                                 }
                             }
                         }
-
                         // Add to the total list if it's a unique link
                         if (uniqueNewLink) 
                             allLinkedCubeGridPositionList.Add(linkedCubeGridPositionList);
@@ -436,8 +393,7 @@ public class Match3 : MonoBehaviour
     {
         if (!IsValidPosition(x, y)) return null;
 
-        CubeGridPosition cubeGridPosition = _grid.GetGridObject(x, y);
-
+        var cubeGridPosition = _grid.GetGridObject(x, y);
         return cubeGridPosition.GetCubeGrid() == null ? null : cubeGridPosition.GetCubeGrid().GetCube();
     }
 
@@ -445,110 +401,4 @@ public class Match3 : MonoBehaviour
     {
         return x >= 0 && y >= 0 && x < _gridWidth && y < _gridHeight;
     }
-    
-    
-    [Serializable]
-    public class GridPositions<TCubeGridPosition>
-    {
-        public List<TCubeGridPosition> positionsList;
-    }
-    
-    [Serializable]
-    public class CubeGridPosition 
-    { 
-        [SerializeField] private CubeGrid _cubeGrid;
-
-        [SerializeField] private Grid<CubeGridPosition> _grid;
-        
-        [SerializeField] private int _x; 
-        [SerializeField] private int _y;
-        
-        public CubeGridPosition(Grid<CubeGridPosition> grid, int x, int y) 
-        {
-            _grid = grid;
-            _x = x;
-            _y = y;
-        }
-
-        public void SetCubeGrid(CubeGrid cubeGrid) 
-        {
-            _cubeGrid = cubeGrid;
-        }
-
-        public int GetX() => _x;
-
-        public int GetY() => _y;
-
-        public Vector3 GetWorldPosition() => _grid.GetWorldPosition(_x, _y);
-
-        public CubeGrid GetCubeGrid() => _cubeGrid;
-
-        public void ClearCubeGrid() 
-        {
-            _cubeGrid = null;
-        }
-
-        public void DestroyCube(bool immediately) 
-        {
-            _cubeGrid?.Destroy(immediately);
-        }
-
-        public bool HasCubeGrid() 
-        {
-            return _cubeGrid != null;
-        }
-
-        public bool IsEmpty() 
-        {
-            return _cubeGrid == null;
-        }
-
-        public override string ToString() => _cubeGrid?.ToString();
-    }
-
-    /*
-     * Represents a Cube Object in the Grid
-     * */
-    
-    [Serializable]
-    public class CubeGrid 
-    {
-        public event BoolEventHandler OnDestroyed;
-
-        [SerializeField] private Cube _cube;
-        [SerializeField] private int _x;
-        [SerializeField] private int _y;
-        [SerializeField] private bool _isDestroyed;
-
-        public CubeGrid(Cube cube, int x, int y) 
-        {
-            _cube = cube;
-            _x = x;
-            _y = y;
-
-            _isDestroyed = false;
-        }
-        
-        public Cube GetCube() => _cube;
-
-        public Vector3 GetWorldPosition() 
-        {
-            return new Vector3(_x, _y);
-        }
-
-        public void SetCubeXY(int x, int y) 
-        {
-            _x = x;
-            _y = y;
-        }
-
-        public void Destroy(bool immediately) 
-        {
-            _isDestroyed = true;
-            OnDestroyed?.Invoke(this, EventArgs.Empty, immediately);
-        }
-
-        public override string ToString() => _isDestroyed.ToString();
-    }
-
 }

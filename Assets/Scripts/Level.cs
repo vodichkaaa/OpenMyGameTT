@@ -27,13 +27,13 @@ public class Level : ScriptableObject
             }
         }
     }
+    
+}
 
-    [Serializable]
-    public class LevelGridPosition 
-    {
-        public Cube cube;
-        public int x;
-        public int y;
-    }
-
+[Serializable]
+public class LevelGridPosition 
+{
+    public Cube cube;
+    public int x;
+    public int y;
 }
